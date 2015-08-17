@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://jsonschema.net",
+  "type": "object",
+  "properties": {
+    "first_name": {
+      "id": "http://jsonschema.net/first_name",
+      "type": "string"
+    },
+    "last_name": {
+      "id": "http://jsonschema.net/last_name",
+      "type": "string"
+    },
+    "email": {
+      "id": "http://jsonschema.net/email",
+      "type": "string"
+    },
+    "country": {
+      "id": "http://jsonschema.net/country",
+      "type": "string",
+      "default": "US"
+    },
+    "products": {
+      "id": "http://jsonschema.net/products",
+      "type": "array",
+      "items": {
+        "id": "http://jsonschema.net/products/0",
+        "type": "object",
+        "properties": {
+          "name": {
+            "id": "http://jsonschema.net/products/0/name",
+            "type": "string"
+          },
+          "quantity": {
+            "id": "http://jsonschema.net/products/0/quantity",
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

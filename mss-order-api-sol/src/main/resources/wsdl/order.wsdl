@@ -1,0 +1,65 @@
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://example.mule.mulesoft.com/"
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http"
+	name="OrderResponse" targetNamespace="http://example.mule.mulesoft.com/">
+	<wsdl:types>
+		<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+			xmlns:tns="http://example.mule.mulesoft.com/" elementFormDefault="unqualified"
+			targetNamespace="http://example.mule.mulesoft.com/" version="1.0">
+			<xs:element name="Order" type="tns:Order" />
+			<xs:element name="OrderResponse" type="tns:OrderResponse" />
+			<xs:complexType name="Order">
+				<xs:sequence>
+					<xs:element minOccurs="0" name="FirstName" type="xs:string" />
+					<xs:element minOccurs="0" name="LastName" type="xs:string" />
+					<xs:element minOccurs="0" name="Email" type="xs:string" />
+					<xs:element minOccurs="0" name="Country" type="xs:string" />
+					<xs:element minOccurs="0" name="Address" type="xs:string" />
+					<xs:element minOccurs="0" name="Products">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element minOccurs="0" name="Name" type="xs:string" />
+								<xs:element minOccurs="0" name="Quantity" type="xs:int" />
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:complexType>
+			<xs:complexType name="OrderResponse">
+				<xs:sequence>
+					<xs:element minOccurs="0" name="ID" type="xs:string" />
+				</xs:sequence>
+			</xs:complexType>
+		</xs:schema>
+	</wsdl:types>
+	<wsdl:message name="OrderResponse">
+		<wsdl:part element="tns:OrderResponse" name="parameters"></wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="Order">
+		<wsdl:part element="tns:Order" name="parameters"></wsdl:part>
+	</wsdl:message>
+	<wsdl:portType name="Order">
+		<wsdl:operation name="Order">
+			<wsdl:input message="tns:Order" name="Order"></wsdl:input>
+			<wsdl:output message="tns:OrderResponse" name="OrderResponse"></wsdl:output>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="OrderResponseSoapBinding" type="tns:Order">
+		<soap:binding style="document"
+			transport="http://schemas.xmlsoap.org/soap/http" />
+		<wsdl:operation name="Order">
+			<soap:operation soapAction="" style="document" />
+			<wsdl:input name="Order">
+				<soap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output name="OrderResponse">
+				<soap:body use="literal" />
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="OrderResponse">
+		<wsdl:port binding="tns:OrderResponseSoapBinding" name="OrderPort">
+			<soap:address location="http://localhost:8882/orders" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

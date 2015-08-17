@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS orders (
+  `orderId` MEDIUMINT NOT NULL AUTO_INCREMENT,
+  `customerName` VARCHAR(45) NULL,
+  `country` VARCHAR(45) NULL,
+  PRIMARY KEY (`orderId`));

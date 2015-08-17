@@ -1,0 +1,7 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:exam="http://example.mule.mulesoft.com/">
+   <soapenv:Body>
+      <exam:OrderResponse>
+         <ID>#['PO-' + (1000 + (int)(Math.random() * ((9999 - 1000) + 1))).toString()]</ID>
+      </exam:OrderResponse>
+   </soapenv:Body>
+</soapenv:Envelope>

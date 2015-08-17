@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ns0:Order xmlns:ns0="http://example.mule.mulesoft.com/">
+  <FirstName>Nial</FirstName>
+  <LastName>Darby</LastName>
+  <Email>nial.darby@mulesoft.com</Email>
+  <Country>US</Country>
+  <Address>77 Geary Street</Address>
+  <Products>
+    <Name>newopp GenWatt Diesel 1000kW</Name>
+    <Quantity>2.0</Quantity>
+  </Products>
+</ns0:Order>

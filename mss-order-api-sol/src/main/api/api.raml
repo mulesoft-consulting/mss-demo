@@ -1,0 +1,49 @@
+#%RAML 0.8
+title: Mule Swag Store
+version: 1.0.0-Prod
+baseUri: http://mss-demo-api.cloudhub.io/api
+/orders:
+  displayName: Orders
+  post:
+    description: Submit an Order
+    body:
+      application/json:
+        schema: !include  order-schema.json
+        example: |
+          {
+            "first_name": "Solution",
+            "last_name": "Architect",
+            "email": "solution.architect@mule.si.com",
+            "country": "US",
+            "products": [
+              {
+                "name": "Squishy Mule",
+                "quantity": 10
+              }
+            ]
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            schema: !include order-response-schema.json
+            example: |
+             [
+              { "id": 4, "name": "S13"},
+              { "id": 5, "name": "S21"},
+              { "id": 6, "name": "S22"}
+             ]
+  get:
+    description: Retrive a list of orders
+    responses:
+      200:
+        body:
+          application/json:
+            example: |
+              [
+                {
+                  "COUNTRY":"US",
+                  "ORDERID":1,
+                  "CUSTOMERNAME":"Solution Architect"
+               }
+              ]

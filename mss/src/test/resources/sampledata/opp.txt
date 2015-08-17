@@ -1,0 +1,14 @@
+Opp
+{LastModifiedDate=2015-07-21T16:35:48.000Z, AccountId=001E000001EyMoNIAV, Amount=200000.0, Id=006E000000WHN5YIAX, type=Opportunity, LastModifiedById=005E0000000V8qkIAC, Name=newopp}
+
+Contact
+{Email=nial.darby@mulesoft.com, FirstName=Nial, MailingCountry=US, MailingAddress={country=US, city=San Francisco, countryCode=null, street=77 Geary Street, latitude=null, postalCode=94108, stateCode=null, state=California, longitude=null}, MailingCity=San Francisco, Id=null, LastName=Darby, type=Contact}
+
+
+['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']
+
+
+OppItem
+{Quantity=2.0, Id=null, type=OpportunityLineItem, Name=newopp GenWatt Diesel 1000kW}
+
+['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']
