@@ -1,0 +1,1 @@
+http://mule-swag-store.cloudhub.io/orders?client_id=9674bb371cf847fea2c08af2c00bda92&client_secret=7e58713f698d414f8BC0AB819AA54562
