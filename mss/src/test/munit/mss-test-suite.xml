@@ -7,11 +7,12 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
     <munit:config name="munit" doc:name="MUnit configuration"/>
       
     <spring:beans>
-        
         <spring:import resource="mss.xml"/>
     </spring:beans>
-      
+    
+     
     <munit:test name="mss-test-suite-sfdc2db.opp2orderTest" description="Test">
+    
         <mock:spy messageProcessor=".*:.*" doc:name="Spy">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['process.opp']"/>
@@ -20,11 +21,55 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
                 <munit:assert-on-equals expectedValue="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" actualValue="#[payload]" doc:name="Assert Equals"/>
             </mock:assertions-before-call>
         </mock:spy>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.sfdc.update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['status':'success']]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.db.insert">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['SCOPE_IDENTITY()':12]]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.ws.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:exam=&quot;http://example.mule.mulesoft.com/&quot;&gt;    &lt;soapenv:Body&gt;       &lt;exam:OrderResponse&gt;          &lt;ID&gt;PO-123&lt;/ID&gt;       &lt;/exam:OrderResponse&gt;    &lt;/soapenv:Body&gt; &lt;/soapenv:Envelope&gt;']"/>
+        </mock:when>
+        
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy - WS Consumer">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="Nial" actualValue="#[xpath3('//FirstName')]" doc:name="FirstName"/>
+                <munit:assert-on-equals expectedValue="Darby" actualValue="#[xpath3('//LastName')]" doc:name="LastName"/>
+                <munit:assert-on-equals expectedValue="nial.darby@mulesoft.com" actualValue="#[xpath3('//Email')]" doc:name="Email"/>
+                <munit:assert-on-equals expectedValue="US" actualValue="#[xpath3('//Country')]" doc:name="Country"/>
+                <munit:assert-on-equals expectedValue="newopp GenWatt Diesel 1000kW" actualValue="#[xpath3('//Name')]" doc:name="Name"/>
+                <munit:assert-on-equals expectedValue="2.0" actualValue="#[xpath3('//Quantity')]" doc:name="Quantity"/>
+            </mock:assertions-before-call>
+        </mock:spy>
         <munit:set payload="#[[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]]" doc:name="Set Message"/>
         <flow-ref name="sfdc2db.opp2order" doc:name="Flow-ref to sfdc2db.opp2order"/>
     </munit:test>
-    
-       
+     
+    <!--    
     <munit:test name="mss-test-suite-process.oppTest" description="Test">
         <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
             <mock:with-attributes>
@@ -66,28 +111,15 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
                 <munit:assert-on-equals expectedValue="Darby" actualValue="#[xpath3('//LastName')]" doc:name="LastName"/>
                 <munit:assert-on-equals expectedValue="nial.darby@mulesoft.com" actualValue="#[xpath3('//Email')]" doc:name="Email"/>
                 <munit:assert-on-equals expectedValue="US" actualValue="#[xpath3('//Country')]" doc:name="Country"/>
-                <munit:assert-on-equals expectedValue="77 Geary Street" actualValue="#[xpath3('//Address')]" doc:name="Address"/>
                 <munit:assert-on-equals expectedValue="newopp GenWatt Diesel 1000kW" actualValue="#[xpath3('//Name')]" doc:name="Name"/>
                 <munit:assert-on-equals expectedValue="2.0" actualValue="#[xpath3('//Quantity')]" doc:name="Quantity"/>
-            </mock:assertions-before-call>
-        </mock:spy>
-        
-        <!-- Reported: https://www.mulesoft.org/jira/browse/MU-340 -->
-        
-         
-        <mock:spy messageProcessor=".*:.*" doc:name="Spy">
-            <mock:with-attributes>
-                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
-            </mock:with-attributes>
-            <mock:assertions-before-call>
-            	<logger message="*****************In assert #[payload]" level="ERROR" doc:name="Logger"/>
-                <munit:assert-on-equals expectedValue="#[[['Id':'oppid', 'Description':'12']]]" actualValue="#[payload]" doc:name="Assert Equals"/>
-                <munit:assert-payload-equals expectedValue="#[[['Id':'oppid', 'Description':'12']]]" doc:name="Assert Payload"/>
             </mock:assertions-before-call>
         </mock:spy>
          
         <munit:set payload="#[['Id':'oppid', 'Name':'oppname']]" doc:name="mock.opp"/>
         <flow-ref name="process.opp" doc:name="Flow-ref to process.opp"/>
     </munit:test>
+    
+     -->
       
 </mule>
