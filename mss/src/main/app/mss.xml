@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+<mule xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
 	xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns="http://www.mulesoft.org/schema/mule/core"
@@ -13,7 +13,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd">
 	<sfdc:config name="Salesforce__Basic_authentication"
 		username="${sfdc.user}" password="${sfdc.password}" securityToken="${sfdc.token}"
 		doc:name="Salesforce">
@@ -23,6 +24,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	<ws:consumer-config name="Web_Service_Consumer"
 		wsdlLocation="wsdl/order.wsdl" service="OrderResponse" port="OrderPort"
 		serviceAddress="http://${ws.host}:${ws.port}/orders" doc:name="Web Service Consumer" />
+    <cloudhub:config name="Cloudhub" username="${ch.username}" password="${ch.password}" doc:name="Cloudhub"/>
 
 	<flow name="sfdc2db.opp2order" processingStrategy="synchronous">
 
@@ -80,7 +82,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 				</db:insert>
 
 
-				<set-payload value="#[payload[0].get('SCOPE_IDENTITY()')]"
+				<set-payload value="#[payload[0].get('SCOPE_IDENTITY()').toString()]"
 					doc:name="Get DB Key" />
 
 			</processor-chain>
@@ -120,7 +122,16 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 
 			</processor-chain>
 		</scatter-gather>
-		<set-variable variableName="orderId" value="#[payload[0].toString()]"
+		<dw:transform-message doc:name="Create SFDC Update">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+[{
+	Id: flowVars.oppId[0],
+	Description: payload[0]
+}]]]></dw:set-payload>
+		</dw:transform-message>
+		<set-variable variableName="orderId" value="#[payload[0].Description]"
 			doc:name="Order Id" />
 		<tracking:custom-event event-name="Order Created"
 			doc:name="Order Created">
@@ -128,15 +139,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 			<tracking:meta-data key="OpportunityId" value="#[oppId]" />
 			<tracking:meta-data key="OrderId" value="#[orderId]" />
 		</tracking:custom-event>
-		<dw:transform-message doc:name="Create SFDC Update">
-			<dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-[{
-	Id: flowVars.oppId,
-	Description: (flowVars.orderId as :string)	
-}]]]></dw:set-payload>
-		</dw:transform-message>
 		<sfdc:update config-ref="Salesforce__Basic_authentication"
 			type="Opportunity" doc:name="Update Opp">
 			<sfdc:objects ref="#[payload]" />
@@ -151,23 +153,37 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 			<catch-exception-strategy
 				when="#[exception.causedBy(com.sforce.soap.partner.fault.UnexpectedErrorFault)]"
 				doc:name="Catch SFDC Issue">
-				<logger message="Salesforce Issue #[payload]" level="ERROR"
-					doc:name="SFDC Data Issue" />
+				<logger message="Error in SFDC Connector #[payload]" level="ERROR"
+					doc:name="SFDC Issue" />
 				<tracking:custom-event event-name="Salesforce Data Issue"
 					doc:name="Salesforce Data Issue">
 					<tracking:meta-data key="OpportunityName" value="#[payload.Name]" />
 					<tracking:meta-data key="OpportunityId" value="#[payload.Id]" />
 				</tracking:custom-event>
+                <cloudhub:create-notification config-ref="Cloudhub" domain="${ch.domain}" message="Salesforce Data Issue for Opp #[payload.Name] with Id #[payload.Id] with Exception: #[exception] " priority="ERROR" doc:name="Cloudhub Alert: SFDC Issue"/>
+				
+
+			</catch-exception-strategy>
+			<catch-exception-strategy
+				when="#[exception.causedBy(org.mule.routing.CompositeRoutingException)]"
+				doc:name="Catch Issue in Scatter Gather  ">
+				<logger message="Error in Scatter Gather #[payload]" level="ERROR"
+					doc:name="Scatter Gather Issue" />
+				<foreach collection="#[exception.getExceptions()]" doc:name="Loop over composite Exceptions">
+					<logger level="ERROR" message="#[payload.getCauseException()]" doc:name="Logger"/>
+                    <cloudhub:create-notification config-ref="Cloudhub" domain="${ch.domain}" message="Issue in Scatter Gather for Opp #[payload.Name] with Id #[payload.Id] with Exception: #[payload.getCauseException()]" priority="ERROR" doc:name="Cloudhub Alert: Scatter Gather Issue"/>
+				</foreach>
 
 			</catch-exception-strategy>
 			<catch-exception-strategy doc:name="Catch All">
-				<logger message="******** General Issue ********" level="ERROR"
-					doc:name="Logger" />
+				<logger message="General Error #[payload]" level="ERROR"
+					doc:name="General Issue" />
 				<tracking:custom-event event-name="Unidentified Error"
 					doc:name="Unidentified Error">
 					<tracking:meta-data key="OpportunityName" value="#[payload.Name]" />
 					<tracking:meta-data key="OpportunityId" value="#[payload.Id]" />
 				</tracking:custom-event>
+               <cloudhub:create-notification config-ref="Cloudhub" domain="${ch.domain}" message="General issue processing Opp #[payload.Name] with Id #[payload.Id] with Exception: #[payload.getCauseException()]" priority="ERROR" doc:name="Cloudhub Alert: General Issue"/>
 
 			</catch-exception-strategy>
 		</choice-exception-strategy>

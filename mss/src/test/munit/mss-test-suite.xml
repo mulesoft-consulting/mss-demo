@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:mock="http://www.mulesoft.org/schema/mule/mock" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" version="EE-3.7.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+<mule xmlns:mock="http://www.mulesoft.org/schema/mule/mock" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd">
@@ -11,27 +11,12 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
     </spring:beans>
     
      
-    <munit:test name="mss-test-suite-sfdc2db.opp2orderTest" description="Test">
-    
-        <mock:spy messageProcessor=".*:.*" doc:name="Spy">
-            <mock:with-attributes>
-                <mock:with-attribute name="doc:name" whereValue="#['process.opp']"/>
-            </mock:with-attributes>
-            <mock:assertions-before-call>
-                <munit:assert-on-equals expectedValue="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" actualValue="#[payload]" doc:name="Assert Equals"/>
-            </mock:assertions-before-call>
-        </mock:spy>
+    <munit:test name="process.opp-happy-path" description="process.opp-happy.path">
         <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
             </mock:with-attributes>
             <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
-        </mock:when>
-        <mock:when messageProcessor=".*:.*" doc:name="mock.sfdc.update">
-            <mock:with-attributes>
-                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
-            </mock:with-attributes>
-            <mock:then-return payload="#[[['status':'success']]]"/>
         </mock:when>
         <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
             <mock:with-attributes>
@@ -39,6 +24,8 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
             </mock:with-attributes>
             <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
         </mock:when>
+        
+        
         <mock:when messageProcessor=".*:.*" doc:name="mock.db.insert">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
@@ -51,7 +38,13 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
             </mock:with-attributes>
             <mock:then-return payload="#['&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:exam=&quot;http://example.mule.mulesoft.com/&quot;&gt;    &lt;soapenv:Body&gt;       &lt;exam:OrderResponse&gt;          &lt;ID&gt;PO-123&lt;/ID&gt;       &lt;/exam:OrderResponse&gt;    &lt;/soapenv:Body&gt; &lt;/soapenv:Envelope&gt;']"/>
         </mock:when>
-        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.sfdc.update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['status':'success']]]"/>
+        </mock:when>
+       
         <mock:spy messageProcessor=".*:.*" doc:name="Spy - WS Consumer">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
@@ -65,9 +58,191 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
                 <munit:assert-on-equals expectedValue="2.0" actualValue="#[xpath3('//Quantity')]" doc:name="Quantity"/>
             </mock:assertions-before-call>
         </mock:spy>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy Update SFDC">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="006E000000WHN5YIAX" actualValue="#[payload[0].Id]" doc:name="Assert Opp Id" message="DB Insert value is not correct"/>
+                <munit:assert-on-equals expectedValue="12" actualValue="#[payload[0].Description]" doc:name="Assert Description" message="DB Insert value is not correct"/>
+            </mock:assertions-before-call>
+        </mock:spy>
         <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
         
         <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
     </munit:test>
+    
+    <munit:test name="process.opp-sfdc.error" description="process.opp-sfdc.error">
+       
+        <mock:throw-an exception-ref="#[new com.sforce.soap.partner.fault.UnexpectedErrorFault()]" whenCalling=".*:.*" doc:name="throw.sfdc.exception.query">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        
+        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.db.insert">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['SCOPE_IDENTITY()':12]]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.ws.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:exam=&quot;http://example.mule.mulesoft.com/&quot;&gt;    &lt;soapenv:Body&gt;       &lt;exam:OrderResponse&gt;          &lt;ID&gt;PO-123&lt;/ID&gt;       &lt;/exam:OrderResponse&gt;    &lt;/soapenv:Body&gt; &lt;/soapenv:Envelope&gt;']"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.sfdc.update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['status':'success']]]"/>
+        </mock:when>
+         
+        <mock:when messageProcessor=".*:.*" doc:name="mock.cloudhub">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: Scatter Gather Issue']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['ok']"/>
+        </mock:when>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy SFDC Cloudhub Update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: SFDC Issue']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="006E000000WHN5YIAX" actualValue="#[payload.Id]" doc:name="Verify Opp Id" message="Opp Id wrong"/>
+                <munit:assert-on-equals expectedValue="newopp" actualValue="#[payload.Name]" doc:name="Verify Opp Name" message="Check opp name still present"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
+    <munit:test name="process.opp-db.error" description="process.opp-db.error">
+       
+       <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+         <mock:when messageProcessor=".*:.*" doc:name="mock.ws.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:exam=&quot;http://example.mule.mulesoft.com/&quot;&gt;    &lt;soapenv:Body&gt;       &lt;exam:OrderResponse&gt;          &lt;ID&gt;PO-123&lt;/ID&gt;       &lt;/exam:OrderResponse&gt;    &lt;/soapenv:Body&gt; &lt;/soapenv:Envelope&gt;']"/>
+        </mock:when>
+       
+        <mock:throw-an exception-ref="#[new Exception('DB Exception')]" whenCalling=".*:.*" doc:name="throw.db.exception">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+         
+        <mock:when messageProcessor=".*:.*" doc:name="mock.cloudhub">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: Scatter Gather Issue']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['ok']"/>
+        </mock:when>
+         
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy Scatter Gather Cloudhub Update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: Scatter Gather Issue']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="java.lang.Exception: DB Exception" actualValue="#[payload.getCauseException().toString()]" doc:name="Verify Exeption Message" message="Wrong Exception Message"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+         
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
+    <munit:test name="process.opp-general.error" description="process.opp-general.error">
+       
+       
+       
+        <mock:throw-an exception-ref="#[new Exception('Generic Exception')]" whenCalling=".*:.*" doc:name="throw.generic.exception">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+         <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        
+        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.db.insert">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['InsertOrder']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['SCOPE_IDENTITY()':12]]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.ws.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Create fulfillment order']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['&lt;soapenv:Envelope xmlns:soapenv=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot; xmlns:exam=&quot;http://example.mule.mulesoft.com/&quot;&gt;    &lt;soapenv:Body&gt;       &lt;exam:OrderResponse&gt;          &lt;ID&gt;PO-123&lt;/ID&gt;       &lt;/exam:OrderResponse&gt;    &lt;/soapenv:Body&gt; &lt;/soapenv:Envelope&gt;']"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.sfdc.update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['status':'success']]]"/>
+        </mock:when>
+         
+        <mock:when messageProcessor=".*:.*" doc:name="mock.cloudhub">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: Scatter Gather Issue']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['ok']"/>
+        </mock:when>
+         
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: General Issue']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="java.lang.Exception: Generic Exception" actualValue="#[exception.getCauseException().toString()]" doc:name="Verify Exeption Message" message="Wrong Exception Message"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+         
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
       
 </mule>
