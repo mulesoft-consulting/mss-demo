@@ -1,4 +1,4 @@
-# Anypoint Paltform Example Application: Salesforce to Database and a Webservice
+# Salesforce to Database and a Webservice Demo
 
 + [License Agreement](#licenseagreement)
 + [Use Case](#usecase)
@@ -30,10 +30,6 @@ Pickup closed opportunities in SFDC and insert them into a database and call a w
 Simple steps to get this example running
 
 
-## Running on premise <a name="runonopremise"/>
-In this section we detail the way you should run your Anypoint Template on your computer.
-
-
 ### Where to Download Mule Studio
 First thing to know if you are a newcomer to Mule is where to get the tools.
 
@@ -45,6 +41,7 @@ First thing to know if you are a newcomer to Mule is where to get the tools.
 + You can sign up for a sfdc dev account here [Location](https://developer.salesforce.com/signup)
 
 ### Importing an Example into Studio
+This git repo contains 3 different Anypoint Studio projects mss, mss-order-api-sol and mss-order-consumer-sol. All of these have to be imported into studio idividually. Start by importing the mss project which is the starting point for this example. The other two mss-order-api-sol and mss-order-consumer-sol are more solutions for the excercise part of this.
 Mule Studio offers several ways to import a project into the workspace, for instance: 
 
 + Anypoint Studio generated Deployable Archive (.zip)
