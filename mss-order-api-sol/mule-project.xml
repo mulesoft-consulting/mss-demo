@@ -3,4 +3,5 @@
     <name>mss-order-api-iv</name>
     <description></description>
     <muleExtension name="APIkit" qualifier="org.mule.tooling.apikit.3.7.0"/>
+    <muleExtension name="Cloudhub" qualifier="org.mule.tooling.ui.contribution.cloudhub.3.6.0"/>
 </mule-project>
