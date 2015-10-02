@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+<mule xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
@@ -8,20 +8,23 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd" version="EE-3.7.1">
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd" >
     <http:listener-config name="api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
     <db:generic-config name="db.connector" url="${jdbc.url}" driverClassName="${jdbc.driver}" doc:name="Generic Database Configuration"/>
-	<ws:consumer-config name="Web_Service_Consumer"
-		wsdlLocation="wsdl/order.wsdl" service="OrderResponse" port="OrderPort"
-		serviceAddress="http://${ws.host}:${ws.port}/orders" doc:name="Web Service Consumer" />
+	<ws:consumer-config name="Web_Service_Consumer" wsdlLocation="wsdl/order.wsdl" service="OrderResponse" port="OrderPort" serviceAddress="http://${ws.host}:${ws.port}/orders" doc:name="Web Service Consumer" />
+	<cloudhub:config name="Cloudhub" username="${ch.username}" password="${ch.password}" doc:name="Cloudhub"/>
     <apikit:config name="api-config" raml="api.raml" consoleEnabled="true" consolePath="console" doc:name="Router"/>
+     
     <flow name="api-main">
         <http:listener config-ref="api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
         <apikit:router config-ref="api-config" doc:name="APIkit Router"/>
+        <logger message="incoiming" level="ERROR" doc:name="Logger"/>
         <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
     </flow>
+     
     <flow name="get:/orders:api-config">
-        <db:select config-ref="db.connector" doc:name="Database">
+        <db:select config-ref="db.connector" doc:name="Select All">
             <db:parameterized-query><![CDATA[select * from orders;]]></db:parameterized-query>
         </db:select>
     </flow>
@@ -29,7 +32,7 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
         <scatter-gather doc:name="Scatter-Gather">
             
             <processor-chain>
-                <dw:transform-message doc:name="Transform Message">
+                <dw:transform-message doc:name="Generate Map">
                     <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 ---
@@ -40,7 +43,7 @@ payload]]></dw:set-payload>
                 </db:insert>
                 
                 
-                <set-payload value="#[payload[0].get('SCOPE_IDENTITY()')]" doc:name="Get DB Key"/>
+                <set-payload value="#[payload[0].get('SCOPE_IDENTITY()').toString()]" doc:name="Get DB Key"/>
                 
             </processor-chain>
              
@@ -73,7 +76,7 @@ payload]]></dw:set-payload>
                
             </processor-chain>
         </scatter-gather>
-        <dw:transform-message doc:name="Transform Message">
+        <dw:transform-message doc:name="Create Response">
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
 ---
@@ -82,6 +85,19 @@ payload]]></dw:set-payload>
 	status: "Success"
 }]]></dw:set-payload>
         </dw:transform-message> 
+         
+        <catch-exception-strategy
+				
+				doc:name="Catch Issue in Scatter Gather  ">
+				<logger message="Error in Scatter Gather #[payload]" level="ERROR"
+					doc:name="Scatter Gather Issue" />
+				<foreach collection="#[exception.getExceptions()]" doc:name="Loop over composite Exceptions">
+					<logger level="ERROR" message="#[payload.getCauseException()]" doc:name="Logger"/>
+                    <cloudhub:create-notification config-ref="Cloudhub" domain="${ch.domain}" message="Issue in Scatter Gather for Opp #[payload.Name] with Id #[payload.Id] with Exception: #[payload.getCauseException()]" priority="ERROR" doc:name="Cloudhub Alert: Scatter Gather Issue"/>
+				</foreach>
+
+			</catch-exception-strategy>
+			
     </flow>
     <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
         <apikit:mapping statusCode="404">
@@ -109,5 +125,5 @@ payload]]></dw:set-payload>
             <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
             <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
         </apikit:mapping>
-    </apikit:mapping-exception-strategy>
+    </apikit:mapping-exception-strategy> 
 </mule>
