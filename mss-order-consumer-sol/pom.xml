@@ -3,10 +3,10 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.mulesoft.demo</groupId>
-	<artifactId>mss-order-consumer-iv</artifactId>
+	<artifactId>mss-order-consumer</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>mule</packaging>
-	<name>Mule mss-order-consumer-iv Application</name>
+	<name>Mule mss-order-consumer Application</name>
 
     <properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -14,7 +14,8 @@
 
 		<mule.version>3.7.1</mule.version>
     	<mule.tools.version>1.1</mule.tools.version>
-	<munit.version>3.7.0-RC2</munit.version>
+	<munit.version>1.0.0</munit.version>
+    <mule.munit.support.version>3.7.0</mule.munit.support.version>
     </properties>
 
 	<build>
@@ -30,6 +31,18 @@
                         <inclusion>
                             <groupId>org.mule.modules</groupId>
                             <artifactId>mule-module-sfdc</artifactId>
+                        </inclusion>
+                    <inclusion>
+                            <groupId>org.mule.modules</groupId>
+                            <artifactId>mule-module-extensions-support</artifactId>
+                        </inclusion>
+                    <inclusion>
+                            <groupId>org.mule.modules</groupId>
+                            <artifactId>mule-module-extensions-spring-support</artifactId>
+                        </inclusion>
+                    <inclusion>
+                            <groupId>org.mule.modules</groupId>
+                            <artifactId>mule-module-cloudhub</artifactId>
                         </inclusion>
                     </inclusions>
                 </configuration>
@@ -70,8 +83,8 @@
 					</execution>
 				</executions>
 			</plugin>
-		<plugin>
-                <groupId>org.mule.munit.tools</groupId>
+        <plugin>
+                <groupId>com.mulesoft.munit.tools</groupId>
                 <artifactId>munit-maven-plugin</artifactId>
                 <version>${munit.version}</version>
                 <executions>
@@ -162,36 +175,7 @@
 			<version>${mule.version}</version>
 			<scope>test</scope>
 		</dependency>
-	<dependency>
-            <groupId>org.mule.munit</groupId>
-            <artifactId>munit-assert</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    <dependency>
-            <groupId>org.mule.munit</groupId>
-            <artifactId>munit-mock</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    <dependency>
-            <groupId>org.mule.munit</groupId>
-            <artifactId>munit-common</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    <dependency>
-            <groupId>org.mule.munit</groupId>
-            <artifactId>munit-runner</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    <dependency>
-            <groupId>org.mule.modules</groupId>
-            <artifactId>mule-interceptor-module</artifactId>
-            <version>${munit.version}</version>
-            <scope>test</scope>
-        </dependency>
+	
     <dependency>
             <groupId>org.mule.modules</groupId>
             <artifactId>mule-module-sfdc</artifactId>
@@ -206,6 +190,51 @@
     <dependency>
             <groupId>com.mulesoft.weave</groupId>
             <artifactId>mule-plugin-weave_2.11</artifactId>
+            <version>${mule.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>mule-munit-support</artifactId>
+            <version>${mule.munit.support.version}</version>
+            <scope>test</scope>
+        </dependency>
+    <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-runner</artifactId>
+            <version>${munit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-extensions-support</artifactId>
+            <version>${mule.version}</version>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-extensions-spring-support</artifactId>
+            <version>${mule.version}</version>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-cloudhub</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+    <dependency>
+            <groupId>com.mulesoft.muleesb.modules</groupId>
+            <artifactId>mule-module-tracking-ee</artifactId>
+            <version>${mule.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-json</artifactId>
+            <version>${mule.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-spring-config</artifactId>
             <version>${mule.version}</version>
             <scope>provided</scope>
         </dependency>
