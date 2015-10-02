@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mock="http://www.mulesoft.org/schema/mule/mock"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd
+http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <munit:config name="munit" doc:name="MUnit configuration"/>
+    <spring:beans>
+        <spring:import resource="classpath:mss-order-consumer.xml"/>
+    </spring:beans>
+   <munit:test name="process.opp-happy.path" description="process.opp-happy.path">
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.contacts">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[['Email':'nial.darby@mulesoft.com', 'FirstName':'Nial', 'MailingCountry':'US', 'MailingAddress':['country':'US', 'city':'San Francisco', 'street':'77 Geary Street', 'postalCode':'94108', 'state':'California'], 'MailingCity':'San Francisco', 'LastName':'Darby', 'type':'Contact']]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.rest.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="{
+  &quot;id&quot;: &quot;7&quot;,
+  &quot;status&quot;: &quot;Success&quot;
+}">
+                <mock:inbound-properties>
+                
+                
+                    <mock:inbound-property key="Content-Type" value="application/json"/>
+                </mock:inbound-properties>
+            </mock:then-return>
+        </mock:when>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy REST Call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <object-to-string-transformer doc:name="Object to String"/>
+                <munit:assert-on-equals message="JSON not correct" expectedValue="US" actualValue="#[json:/country]" doc:name="Assert Equals"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy SFDC Update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Update Opp']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals message="Wrong or missing ID value" expectedValue="006E000000WHN5YIAX" actualValue="#[payload[0].Id]" doc:name="Verify Opp Id"/>
+                <munit:assert-on-equals message="Order Id wrong or missing" expectedValue="7" actualValue="#[payload[0].Description]" doc:name="Verify Order Id"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
+    <munit:test name="process.opp-sfdc.error" description="process.opp-sfdc.error">
+        <mock:throw-an exception-ref="#[new Exception('HTTP Exception')]" whenCalling=".*:.*" doc:name="throw.sfdc.exception.query">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.rest.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="{
+  &quot;id&quot;: &quot;7&quot;,
+  &quot;status&quot;: &quot;Success&quot;
+}">
+                <mock:inbound-properties>
+                    <mock:inbound-property key="Content-Type" value="application/json"/>
+                </mock:inbound-properties>
+            </mock:then-return>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.cloudhub">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: SFDC Issue']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['ok']"/>
+        </mock:when>
+        
+        
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy SFDC Cloudhub Update">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: SFDC Issue']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="006E000000WHN5YIAX" actualValue="#[payload.Id]" doc:name="Verify Opp Id" message="Opp Id wrong"/>
+                <munit:assert-on-equals expectedValue="newopp" actualValue="#[payload.Name]" doc:name="Verify Opp Name" message="Check opp name still present"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
+    
+    <munit:test name="process.opp-http.error" description="process.opp-http.error">
+        <mock:throw-an exception-ref="#[new com.sforce.soap.partner.fault.UnexpectedErrorFault()]" whenCalling=".*:.*" doc:name="throw.sfdc.exception.query">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetMainContact']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        
+        <mock:when messageProcessor=".*:.*" doc:name="mock.query.opp.line.item">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['GetOppItems']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[[['Quantity':2.0, 'type':'OpportunityLineItem', 'Name':'newopp GenWatt Diesel 1000kW']]]"/>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.rest.call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="{
+  &quot;id&quot;: &quot;7&quot;,
+  &quot;status&quot;: &quot;Success&quot;
+}">
+                <mock:inbound-properties>
+                    <mock:inbound-property key="Content-Type" value="application/json"/>
+                </mock:inbound-properties>
+            </mock:then-return>
+        </mock:when>
+        <mock:when messageProcessor=".*:.*" doc:name="mock.cloudhub">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: SFDC Issue']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#['ok']"/>
+        </mock:when>
+        
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy REST Call">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Call Orders API']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <object-to-string-transformer doc:name="Object to String"/>
+                <munit:assert-on-equals message="JSON not correct" expectedValue="US" actualValue="#[json:/country]" doc:name="Assert Equals"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        <mock:spy messageProcessor=".*:.*" doc:name="Spy Cloudhub Alert: General Issue">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Cloudhub Alert: General Issue']"/>
+            </mock:with-attributes>
+            <mock:assertions-before-call>
+                <munit:assert-on-equals expectedValue="006E000000WHN5YIAX" actualValue="#[payload.Id]" doc:name="Verify Opp Id" message="Opp Id wrong"/>
+                <munit:assert-on-equals expectedValue="newopp" actualValue="#[payload.Name]" doc:name="Verify Opp Name" message="Check opp name still present"/>
+            </mock:assertions-before-call>
+        </mock:spy>
+        
+        <munit:set payload="#[['LastModifiedDate':'2015-07-21T16:35:48.000Z', 'AccountId':'001E000001EyMoNIAV', 'Amount':200000.0, 'Id':'006E000000WHN5YIAX', 'type':'Opportunity', 'LastModifiedById':'005E0000000V8qkIAC', 'Name':'newopp']]" doc:name="Set Message"/>
+        
+        <flow-ref name="process.opp" doc:name="Flow-ref to sfdc2db.opp2order"/>
+    </munit:test>
+    
+</mule>
