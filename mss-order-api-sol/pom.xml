@@ -3,10 +3,10 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.mulesoft.demo</groupId>
-	<artifactId>mss-order-api-sol</artifactId>
+	<artifactId>mss-order-api</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>mule</packaging>
-	<name>Mule mss-order-api-sol Application</name>
+	<name>mss-order-api</name>
 
     <properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
