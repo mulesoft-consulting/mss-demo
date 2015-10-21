@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		doc:name="Salesforce">
 	</sfdc:config>
 	<cloudhub:config name="Cloudhub" username="${ch.username}" password="${ch.password}" doc:name="Cloudhub"/>
-    <http:request-config name="HTTP_Request_Configuration" host="localhost" port="8081" basePath="/api" doc:name="HTTP Request Configuration">
+    <http:request-config name="HTTP_Request_Configuration" host="${api.host}" port="${api.port}" basePath="/api" doc:name="HTTP Request Configuration">
         <http:raml-api-configuration location="api.raml"/>
     </http:request-config>
 	<flow name="sfdc2db.opp2order" processingStrategy="synchronous">
@@ -94,7 +94,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 ---
 [{
 	Id: flowVars.oppId,
-	Description: payload.id
+	Description: payload.id as :string
 }]]]></dw:set-payload>
         </dw:transform-message>
     <set-variable variableName="orderId" value="#[payload[0].Description]" doc:name="Order Id"/>
@@ -104,9 +104,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 					<tracking:meta-data key="OpportunityId" value="#[oppId]" />
 					<tracking:meta-data key="OrderId" value="#[orderId]" />
 				</tracking:custom-event>
+        <logger message="Update #[payload]" level="INFO" doc:name="Update"/>
         <sfdc:update config-ref="Salesforce__Basic_authentication" type="Opportunity" doc:name="Update Opp">
             <sfdc:objects ref="#[payload]"/>
         </sfdc:update>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <tracking:custom-event event-name="SFDC Order Id Updated"
 					doc:name="SFDC Order Id Updated">
 					<tracking:meta-data key="OpportunityName" value="#[oppName]" />
